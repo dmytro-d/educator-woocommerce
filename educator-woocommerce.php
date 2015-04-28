@@ -110,7 +110,7 @@ class Educator_WooCommerce {
 			$objects = edu_wc_get_objects_by_product( $values['data']->id );
 
 			foreach ( $objects as $object ) {
-				if ( in_array( $object->post_type, array( 'ib_educator_course' ) ) ) {
+				if ( in_array( $object->post_type, array( 'ib_educator_course', 'ib_edu_membership' ) ) ) {
 					$option_value = '';
 					break;
 				}
