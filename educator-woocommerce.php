@@ -21,23 +21,15 @@ function edu_wc_get_objects_by_product( $product_id ) {
 	$args = array(
 		'post_type'      => array( 'ib_educator_course', 'ib_edu_membership' ),
 		'post_status'    => 'publish',
-		'meta_query'     => array(),
+		'meta_query'     => array(
+			array(
+				'key'     => '_edu_wc_product',
+				'value'   => $product_id,
+				'compare' => is_numeric( $product_id ) ? '=' : 'IN',
+			)
+		),
 		'posts_per_page' => -1,
 	);
-
-	if ( is_numeric( $product_id ) ) {
-		$args['meta_query'][] = array(
-			'key'     => '_edu_wc_product',
-			'value'   => $product_id,
-			'compare' => '=',
-		);
-	} elseif ( is_array( $product_id ) ) {
-		$args['meta_query'][] = array(
-			'key'     => '_edu_wc_product',
-			'value'   => $product_id,
-			'compare' => 'IN',
-		);
-	}
 
 	$query = new WP_Query( $args );
 
@@ -50,6 +42,8 @@ function edu_wc_get_objects_by_product( $product_id ) {
 
 class Educator_WooCommerce {
 	protected $version = '0.1';
+
+	protected $cache = array();
 
 	protected static $instance;
 
@@ -75,7 +69,9 @@ class Educator_WooCommerce {
 		// Order has been created, but hasn't been paid.
 		add_action( 'woocommerce_checkout_order_processed', array( $this, 'complete_order' ) );
 		// Payment for an order has been completed.
-		add_action( 'woocommerce_payment_complete', array( $this, 'complete_order' ) );
+		//add_action( 'woocommerce_payment_complete', array( $this, 'complete_order' ) );
+		// Update order status to "completed" when only courses and/or memberships are purchased.
+		add_filter( 'woocommerce_payment_complete_order_status', array( $this, 'order_needs_processing' ), 10, 2 );
 		// Order has been completed.
 		add_action( 'woocommerce_order_status_completed', array( $this, 'complete_order' ) );
 		// Order has been cancelled.
@@ -220,6 +216,45 @@ class Educator_WooCommerce {
 			'active' => $active_entries,
 			'order'  => $order_entries,
 		);
+	}
+
+	public function order_needs_processing( $new_status, $id ) {
+		if ( 'processing' != $new_status ) {
+			return $new_status;
+		}
+
+		$order = new WC_Order( $id );
+
+		if ( ! isset( $order ) ) {
+			return $new_status;
+		}
+
+		$product_ids = array();
+		
+		foreach ( $order->get_items() as $item ) {
+			if ( $item['product_id'] > 0 ) {
+				$product = $order->get_product_from_item( $item );
+
+				if ( ! $product->is_virtual() ) {
+					return $new_status;
+				}
+
+				$product_ids[] = $item['product_id'];
+			}
+		}
+
+		if ( empty( $product_ids ) ) {
+			return $new_status;
+		}
+
+		$objects = edu_wc_get_objects_by_product( $product_ids );
+
+		if ( ! empty( $objects ) && count( $objects ) == count( $product_ids ) ) {
+			// We proved that ordered products are virtual.
+			return 'completed';
+		}
+
+		return $new_status;
 	}
 
 	/**
