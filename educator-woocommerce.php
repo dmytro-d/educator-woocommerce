@@ -18,9 +18,10 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @return array
  */
 function edu_wc_get_objects_by_product( $product_id ) {
-	$args = array(
+	return get_posts( array(
 		'post_type'      => array( 'ib_educator_course', 'ib_edu_membership' ),
 		'post_status'    => 'publish',
+		'posts_per_page' => -1,
 		'meta_query'     => array(
 			array(
 				'key'     => '_edu_wc_product',
@@ -28,16 +29,7 @@ function edu_wc_get_objects_by_product( $product_id ) {
 				'compare' => is_numeric( $product_id ) ? '=' : 'IN',
 			)
 		),
-		'posts_per_page' => -1,
-	);
-
-	$query = new WP_Query( $args );
-
-	if ( $query->have_posts() ) {
-		return $query->posts;
-	}
-
-	return array();
+	) );
 }
 
 class Educator_WooCommerce {
@@ -66,21 +58,26 @@ class Educator_WooCommerce {
 		add_filter( 'ib_educator_course_price_widget', array( $this, 'course_price_widget' ), 10, 4 );
 		add_filter( 'ib_educator_membership_price_widget', array( $this, 'membership_price_widget' ), 10, 4 );
 
-		// Order has been created, but hasn't been paid.
-		add_action( 'woocommerce_checkout_order_processed', array( $this, 'complete_order' ) );
-		// Payment for an order has been completed.
-		//add_action( 'woocommerce_payment_complete', array( $this, 'complete_order' ) );
-		// Update order status to "completed" when only courses and/or memberships are purchased.
+		// Process free items (immediately), before payment.
+		add_action( 'woocommerce_checkout_order_processed', array( $this, 'process_free_items_before_payment' ) );
+
+		// When a payment is complete and only courses and/or memberships were ordered,
+		// change order's status from "processing" to "completed".
 		add_filter( 'woocommerce_payment_complete_order_status', array( $this, 'order_needs_processing' ), 10, 2 );
-		// Order has been completed.
+
+		// Process ordered items when order's status changes to "completed".
 		add_action( 'woocommerce_order_status_completed', array( $this, 'complete_order' ) );
-		// Order has been cancelled.
+		
+		// Cancel ordered items when order's status changes to "cancelled" or "refunded".
 		add_action( 'woocommerce_order_status_cancelled', array( $this, 'cancel_order' ) );
-		// Order has been refunded.
 		add_action( 'woocommerce_order_status_refunded', array( $this, 'cancel_order' ) );
 
 		// Disable guest checkout if a visitor has a course or a membership in his/her cart.
 		add_filter( 'pre_option_woocommerce_enable_guest_checkout', array( $this, 'can_guest_checkout' ) );
+
+		// Prevent users from adding more than 1 membership to cart,
+		// and replace old membership by the new one.
+		add_filter( 'woocommerce_add_to_cart_validation', array( $this, 'one_membership_in_cart' ), 10, 2 );
 
 		if ( is_admin() ) {
 			require_once 'admin/admin.php';
@@ -95,14 +92,12 @@ class Educator_WooCommerce {
 	 * @return string
 	 */
 	public function can_guest_checkout( $option_value ) {
-		global $woocommerce;
-
 		// We do not need to block guest checkout while in admin panel.
 		if ( is_admin() && ! ( defined( 'DOING_AJAX' ) && DOING_AJAX ) ) {
 			return $option_value;
 		}
 
-		foreach ( $woocommerce->cart->get_cart() as $item_key => $values ) {
+		foreach ( WC()->cart->get_cart() as $item_key => $values ) {
 			$objects = edu_wc_get_objects_by_product( $values['data']->id );
 
 			foreach ( $objects as $object ) {
@@ -258,6 +253,19 @@ class Educator_WooCommerce {
 	}
 
 	/**
+	 * Process free items before payment.
+	 *
+	 * @param int $order_id
+	 */
+	public function process_free_items_before_payment( $order_id ) {
+		if ( WC()->cart->needs_payment() ) {
+			// Process only those items that are free,
+			// paid items will be processed after payment.
+			$this->complete_order( $order_id );
+		}
+	}
+
+	/**
 	 * Complete WooCommerce order.
 	 * Create entries and/or memberships for purchased products.
 	 *
@@ -277,11 +285,11 @@ class Educator_WooCommerce {
 		}
 
 		$product_ids = array();
-		$order_status = $order->get_status();
-		$valid_statuses = array( 'completed', 'processing' );
+		$is_order_ready = in_array( $order->get_status(), array( 'completed', 'processing' ) );
 
 		foreach ( $items as $item_id => $item ) {
-			if ( in_array( $order_status, $valid_statuses ) || 0 == $item['line_total'] ) {
+			if ( $is_order_ready || 0 == $item['line_total'] ) {
+				// Process item only if it's free or order is complete.
 				$product_ids[] = $item['product_id'];
 			}
 		}
@@ -312,7 +320,7 @@ class Educator_WooCommerce {
 
 				if ( array_key_exists( $object->ID, $entries['order'] ) ) {
 					// Entry associated with current item exists,
-					// just update its status to inprogress.
+					// just update its status to "inprogress".
 					$entry = $entries['order'][ $object->ID ];
 					$entry->entry_status = 'inprogress';
 				} else {
@@ -328,8 +336,14 @@ class Educator_WooCommerce {
 
 				$entry->save();
 			} elseif ( 'ib_edu_membership' == $object->post_type ) {
-				$ms = IB_Educator_Memberships::get_instance();
-				$ms->setup_membership( $order->user_id, $object->ID );
+				IB_Educator_Memberships::get_instance()->setup_membership(
+					$order->user_id,
+					$object->ID,
+					array(
+						'origin_type' => 'wc_order',
+						'origin_id'   => $order->id,
+					)
+				);
 			}
 		}
 	}
@@ -366,7 +380,7 @@ class Educator_WooCommerce {
 		}
 
 		$entries = null;
-		$user_membership = null;
+		$u_membership = null;
 		$ms = null;
 
 		foreach ( $objects as $object ) {
@@ -395,21 +409,63 @@ class Educator_WooCommerce {
 			} elseif ( 'ib_edu_membership' == $object->post_type ) {
 				if ( is_null( $ms ) ) {
 					$ms = IB_Educator_Memberships::get_instance();
-					$user_membership = $ms->get_user_membership( $order->user_id );
+					$u_membership = $ms->get_user_membership( $order->user_id );
 				}
-
-				if ( $user_membership && $user_membership['membership_id'] == $object->ID ) {
-					$user_membership['status'] = 'expired';
+				
+				if ( $u_membership && 'wc_order' == $u_membership['origin_type'] && $order->id == $u_membership['origin_id'] ) {
+					$u_membership['status'] = 'expired';
 					
-					if ( ! empty( $user_membership['expiration'] ) && is_numeric( $user_membership['expiration'] ) ) {
-						$user_membership['expiration'] = date( 'Y-m-d H:i:s', $user_membership['expiration'] );
+					if ( ! empty( $u_membership['expiration'] ) && is_numeric( $u_membership['expiration'] ) ) {
+						$u_membership['expiration'] = date( 'Y-m-d H:i:s', $u_membership['expiration'] );
 					}
 
-					$ms->update_user_membership( $user_membership );
-					$ms->update_membership_entries( $order->user_id, 'paused' );
+					$ms->update_user_membership( $u_membership );
+
+					// Pause course entries which originated from this membership.
+					$ms->update_membership_entries( $u_membership['user_id'], 'paused' );
 				}
 			}
 		}
+	}
+
+	public function one_membership_in_cart( $valid, $product_id ) {
+		$product_ids = array();
+		$product_ids[] = $product_id;
+
+		foreach ( WC()->cart->get_cart() as $item_key => $values ) {
+			$product_ids[ $item_key ] = $values['data']->id;
+		}
+
+		$objects = edu_wc_get_objects_by_product( $product_ids );
+
+		if ( ! empty( $objects ) ) {
+			$cart_object_id = 0;
+			$new_object_id = 0;
+			$item_key = null;
+
+			foreach ( $objects as $object ) {
+				if ( 'ib_edu_membership' == $object->post_type ) {
+					$obj_product_id = get_post_meta( $object->ID, '_edu_wc_product', true );
+
+					if ( $product_id == $obj_product_id ) {
+						$new_object_id = $object->ID;
+					} else {
+						$cart_object_id = $object->ID;
+						$item_key = array_search( $obj_product_id, $product_ids );
+					}
+				}
+			}
+
+			if ( $new_object_id > 0 && $cart_object_id > 0 ) {
+				$this->cache['one_in_cart'] = $new_object_id;
+
+				if ( $item_key ) {
+					WC()->cart->set_quantity( $item_key, 0 );
+				}
+			}
+		}
+
+		return $valid;
 	}
 }
 
