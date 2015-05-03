@@ -57,6 +57,7 @@ class Educator_WooCommerce {
 		// Alter price/register widgets.
 		add_filter( 'ib_educator_course_price_widget', array( $this, 'course_price_widget' ), 10, 4 );
 		add_filter( 'ib_educator_membership_price_widget', array( $this, 'membership_price_widget' ), 10, 4 );
+		add_filter( 'ib_edu_pre_purchase_link', array( $this, 'alter_purchase_link' ), 10, 2 );
 
 		// Process free items (immediately), before payment.
 		add_action( 'woocommerce_checkout_order_processed', array( $this, 'process_free_items_before_payment' ) );
@@ -83,6 +84,17 @@ class Educator_WooCommerce {
 			require_once 'admin/admin.php';
 			Educator_WooCommerce_Admin::get_instance();
 		}
+	}
+
+	public function get_object_product( $object_id ) {
+		$product = null;
+		$product_id = get_post_meta( $object_id, '_edu_wc_product', true );
+
+		if ( ! empty( $product_id ) ) {
+			$product = wc_get_product( $product_id );
+		}
+
+		return $product;
 	}
 
 	/**
@@ -123,10 +135,8 @@ class Educator_WooCommerce {
 		return $origins;
 	}
 
-	public function get_price_widget_html( $product ) {
-		$output = '<div class="ib-edu-price-widget">';
-		$output .= $product->get_price_html();
-		$output .= sprintf( '<a href="%s" rel="nofollow" data-product_id="%s" data-product_sku="%s" data-quantity="%s" class="button %s product_type_%s">%s</a>',
+	protected function get_add_to_cart_button( $product ) {
+		return sprintf( '<a href="%s" rel="nofollow" data-product_id="%s" data-product_sku="%s" data-quantity="%s" class="button %s product_type_%s">%s</a>',
 			esc_url( $product->add_to_cart_url() ),
 			esc_attr( $product->id ),
 			esc_attr( $product->get_sku() ),
@@ -135,6 +145,12 @@ class Educator_WooCommerce {
 			esc_attr( $product->product_type ),
 			esc_html( $product->add_to_cart_text() )
 		);
+	}
+
+	protected function get_price_widget_html( $product ) {
+		$output = '<div class="ib-edu-price-widget">';
+		$output .= $product->get_price_html();
+		$output .= $this->get_add_to_cart_button( $product );
 		$output .= '</div>';
 		return $output;
 	}
@@ -152,13 +168,7 @@ class Educator_WooCommerce {
 			return $output;
 		}
 
-		$product_id = get_post_meta( $course_id, '_edu_wc_product', true );
-
-		if ( empty( $product_id ) ) {
-			return $output;
-		}
-
-		$product = wc_get_product( $product_id );
+		$product = $this->get_object_product( $course_id );
 
 		if ( ! $product ) {
 			return $output;
@@ -174,19 +184,23 @@ class Educator_WooCommerce {
 	 * @param bool $membership_id
 	 */
 	public function membership_price_widget( $output, $membership_id ) {
-		$product_id = get_post_meta( $membership_id, '_edu_wc_product', true );
-
-		if ( empty( $product_id ) ) {
-			return $output;
-		}
-
-		$product = wc_get_product( $product_id );
+		$product = $this->get_object_product( $membership_id );
 
 		if ( ! $product ) {
 			return $output;
 		}
 
 		return $this->get_price_widget_html( $product );
+	}
+
+	public function alter_purchase_link( $html, $atts ) {
+		$product = $this->get_object_product( $atts['object_id'] );
+
+		if ( $product ) {
+			$html = $this->get_add_to_cart_button( $product );
+		}
+
+		return $html;
 	}
 
 	public function get_user_entries( $order ) {
