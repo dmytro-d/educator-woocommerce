@@ -403,8 +403,9 @@ class Educator_WooCommerce {
 				if ( is_null( $entries ) ) {
 					$entries = array();
 					$tmp = IB_Educator::get_instance()->get_entries( array(
-						'payment_id' => $order->id,
-						'user_id'    => $order->user_id,
+						'payment_id'   => $order->id,
+						'user_id'      => $order->user_id,
+						'entry_origin' => 'wc_order',
 					) );
 
 					if ( ! empty( $tmp ) ) {

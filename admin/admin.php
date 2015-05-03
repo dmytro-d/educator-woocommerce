@@ -43,6 +43,9 @@ class Educator_WooCommerce_Admin {
 		$products = get_posts( array(
 			'post_type'   => 'product',
 			'post_status' => 'publish',
+			'tax_query'   => array(
+				array( 'taxonomy' => 'product_type', 'field' => 'slug', 'terms' => 'simple' )
+			),
 		) );
 
 		$output = '';
