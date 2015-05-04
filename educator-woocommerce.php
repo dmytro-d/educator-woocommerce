@@ -383,7 +383,9 @@ class Educator_WooCommerce {
 		$product_ids = array();
 
 		foreach ( $items as $item_id => $item ) {
-			$product_ids[] = $item['product_id'];
+			if ( 0 != $item['line_total'] ) {
+				$product_ids[] = $item['product_id'];
+			}
 		}
 
 		// Get posts associated with ordered products.
