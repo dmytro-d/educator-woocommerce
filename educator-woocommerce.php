@@ -66,8 +66,10 @@ class Educator_WooCommerce {
 		// change order's status from "processing" to "completed".
 		add_filter( 'woocommerce_payment_complete_order_status', array( $this, 'order_needs_processing' ), 10, 2 );
 
-		// Process ordered items when order's status changes to "completed".
-		add_action( 'woocommerce_order_status_completed', array( $this, 'complete_order' ) );
+		// Process ordered items when order's status changes to "processing" or "completed".
+		//add_action( 'woocommerce_order_status_completed', array( $this, 'complete_order' ) );
+		//add_action( 'woocommerce_order_status_processing', array( $this, 'complete_order' ) );
+		add_action( 'woocommerce_order_status_changed', array( $this, 'complete_order' ), 10, 3 );
 		
 		// Cancel ordered items when order's status changes to "cancelled" or "refunded".
 		add_action( 'woocommerce_order_status_cancelled', array( $this, 'cancel_order' ) );
@@ -285,7 +287,7 @@ class Educator_WooCommerce {
 	 *
 	 * @param int $order_id
 	 */
-	public function complete_order( $order_id ) {
+	public function complete_order( $order_id, $old_status = null, $new_status = null ) {
 		$order = new WC_Order( $order_id );
 
 		if ( ! isset( $order ) ) {
@@ -298,8 +300,14 @@ class Educator_WooCommerce {
 			return;
 		}
 
+		$order_status = $order->get_status();
+
+		if ( in_array( $order_status, array( 'cancelled', 'refunded', 'failed' ) ) ) {
+			return;
+		}
+
 		$product_ids = array();
-		$is_order_ready = in_array( $order->get_status(), array( 'completed', 'processing' ) );
+		$is_order_ready = in_array( $order_status, array( 'completed', 'processing' ) );
 
 		foreach ( $items as $item_id => $item ) {
 			if ( $is_order_ready || 0 == $item['line_total'] ) {
@@ -350,14 +358,16 @@ class Educator_WooCommerce {
 
 				$entry->save();
 			} elseif ( 'ib_edu_membership' == $object->post_type ) {
-				IB_Educator_Memberships::get_instance()->setup_membership(
-					$order->user_id,
-					$object->ID,
-					array(
-						'origin_type' => 'wc_order',
-						'origin_id'   => $order->id,
-					)
-				);
+				if ( 'processing' != $old_status && 'completed' != $old_status ) {
+					IB_Educator_Memberships::get_instance()->setup_membership(
+						$order->user_id,
+						$object->ID,
+						array(
+							'origin_type' => 'wc_order',
+							'origin_id'   => $order->id,
+						)
+					);
+				}
 			}
 		}
 	}
@@ -430,21 +440,34 @@ class Educator_WooCommerce {
 				}
 				
 				if ( $u_membership && 'wc_order' == $u_membership['origin_type'] && $order->id == $u_membership['origin_id'] ) {
-					$u_membership['status'] = 'expired';
-					
 					if ( ! empty( $u_membership['expiration'] ) && is_numeric( $u_membership['expiration'] ) ) {
-						$u_membership['expiration'] = date( 'Y-m-d H:i:s', $u_membership['expiration'] );
+						// Membership that has a duration.
+						$membership_meta = $ms->get_membership_meta($u_membership['membership_id']);
+
+						// Calculate new expiration date.
+						$new_expiration_ts = $ms->modify_expiration_date( $membership_meta['duration'],
+							$membership_meta['period'], '-', $u_membership['expiration'] );
+						
+						// Update expiration date.
+						$u_membership['expiration'] = date( 'Y-m-d H:i:s', $new_expiration_ts );
+					} else {
+						// Onetime membership.
+						$u_membership['status'] = 'expired';
 					}
 
 					$ms->update_user_membership( $u_membership );
-
-					// Pause course entries which originated from this membership.
-					$ms->update_membership_entries( $u_membership['user_id'], 'paused' );
 				}
 			}
 		}
 	}
 
+	/**
+	 * Only one membership per cart.
+	 *
+	 * @param bool $valid
+	 * @param int $product_id
+	 * @return bool
+	 */
 	public function one_membership_in_cart( $valid, $product_id ) {
 		$product_ids = array();
 		$product_ids[] = $product_id;
