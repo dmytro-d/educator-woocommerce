@@ -111,7 +111,13 @@ class Educator_WooCommerce {
 			return $option_value;
 		}
 
-		foreach ( WC()->cart->get_cart() as $item_key => $values ) {
+		$cart = WC()->cart;
+
+		if ( ! $cart ) {
+			return $option_value;
+		}
+
+		foreach ( $cart->get_cart() as $item_key => $values ) {
 			$objects = edu_wc_get_objects_by_product( $values['data']->id );
 
 			foreach ( $objects as $object ) {
