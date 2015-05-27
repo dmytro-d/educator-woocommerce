@@ -67,8 +67,6 @@ class Educator_WooCommerce {
 		add_filter( 'woocommerce_payment_complete_order_status', array( $this, 'order_needs_processing' ), 10, 2 );
 
 		// Process ordered items when order's status changes to "processing" or "completed".
-		//add_action( 'woocommerce_order_status_completed', array( $this, 'complete_order' ) );
-		//add_action( 'woocommerce_order_status_processing', array( $this, 'complete_order' ) );
 		add_action( 'woocommerce_order_status_changed', array( $this, 'complete_order' ), 10, 3 );
 		
 		// Cancel ordered items when order's status changes to "cancelled" or "refunded".
@@ -140,6 +138,7 @@ class Educator_WooCommerce {
 	 */
 	public function entry_origins( $origins ) {
 		$origins['wc_order'] = __( 'WooCommerce Order', 'educator-wc' );
+
 		return $origins;
 	}
 
@@ -160,6 +159,7 @@ class Educator_WooCommerce {
 		$output .= $product->get_price_html();
 		$output .= $this->get_add_to_cart_button( $product );
 		$output .= '</div>';
+
 		return $output;
 	}
 
@@ -456,6 +456,12 @@ class Educator_WooCommerce {
 						
 						// Update expiration date.
 						$u_membership['expiration'] = date( 'Y-m-d H:i:s', $new_expiration_ts );
+
+						if ( date( 'Y-m-d', $new_expiration_ts ) == date( 'Y-m-d' ) ) {
+							// The membership was ordered and cancelled today,
+							// so mark it as expired.
+							$u_membership['status'] = 'expired';
+						}
 					} else {
 						// Onetime membership.
 						$u_membership['status'] = 'expired';

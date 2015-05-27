@@ -78,7 +78,7 @@ class Educator_WooCommerce_Test {
 		return new WC_Product_Simple( $product_id );
 	}
 
-	public function addOrder( $data ) {
+	public function addOrder( $data, array $products ) {
 		$address = array(
 			'first_name' => 'John',
 			'last_name'  => 'Smith',
@@ -97,7 +97,11 @@ class Educator_WooCommerce_Test {
 			'customer_id' => $data['customer_id'],
 			'status'      => apply_filters( 'woocommerce_default_order_status', 'pending' ),
 		) );
-		$order->add_product( $data['product'], 1 );
+
+		foreach ( $products as $product ) {
+			$order->add_product( $product, 1 );
+		}
+
 		$order->set_address( $address, 'billing' );
 		$order->set_address( $address, 'shipping' );
 		$order->calculate_totals();
