@@ -41,9 +41,10 @@ class Educator_WooCommerce_Admin {
 		$cur_product_id = get_post_meta( $post->ID, '_edu_wc_product', true );
 
 		$products = get_posts( array(
-			'post_type'   => 'product',
-			'post_status' => 'publish',
-			'tax_query'   => array(
+			'post_type'      => 'product',
+			'post_status'    => 'publish',
+			'posts_per_page' => -1,
+			'tax_query'      => array(
 				array( 'taxonomy' => 'product_type', 'field' => 'slug', 'terms' => 'simple' )
 			),
 		) );
@@ -155,7 +156,9 @@ class Educator_WooCommerce_Admin {
 
 	public function update_currency( $old_currency, $new_currency ) {
 		$edu_settings = get_option( 'ib_educator_settings', array() );
+		
 		$edu_settings['currency'] = $new_currency;
+
 		update_option( 'ib_educator_settings', $edu_settings );
 	}
 }

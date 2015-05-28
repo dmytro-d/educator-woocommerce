@@ -156,7 +156,7 @@ class Educator_WooCommerce {
 
 	protected function get_price_widget_html( $product ) {
 		$output = '<div class="ib-edu-price-widget">';
-		$output .= $product->get_price_html();
+		$output .= '<span class="price">' . $product->get_price_html() . '</span>';
 		$output .= $this->get_add_to_cart_button( $product );
 		$output .= '</div>';
 

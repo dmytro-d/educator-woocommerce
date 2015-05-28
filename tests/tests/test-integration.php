@@ -51,14 +51,14 @@ class Integration extends WP_UnitTestCase {
 		$u_membership = $ms->get_user_membership( 1 );
 
 		$this->assertEquals( array(
-			'ID'             => $u_membership['ID'],
-			'user_id'        => 1,
-			'membership_id'  => $membership->ID,
-			'status'         => 'active',
-			'expiration'     => $ms->calculate_expiration_date( 1, 'months' ),
-			'paused'         => 0,
-			'origin_type'    => 'wc_order',
-			'origin_id'      => $order->id,
+			'ID'            => $u_membership['ID'],
+			'user_id'       => 1,
+			'membership_id' => $membership->ID,
+			'status'        => 'active',
+			'expiration'    => $ms->calculate_expiration_date( 1, 'months' ),
+			'paused'        => 0,
+			'origin_type'   => 'wc_order',
+			'origin_id'     => $order->id,
 		), $u_membership );
 	}
 
@@ -172,5 +172,60 @@ class Integration extends WP_UnitTestCase {
 			'status'     => $u_membership['status'],
 			'expiration' => $u_membership['expiration'],
 		) );
+	}
+
+	public function testOneMembershioPerCart() {
+		$ewt = Educator_WooCommerce_Test::instance();
+
+		// Membership 1
+		$membership1 = $ewt->addMembership( array(
+			'price'      => 10,
+			'period'     => 'months',
+			'duration'   => 1,
+			'categories' => array(),
+		) );
+		$product1 = $ewt->addProduct( $membership1 );
+
+		// Membership 2
+		$membership2 = $ewt->addMembership( array(
+			'price'      => 25,
+			'period'     => 'years',
+			'duration'   => 1,
+			'categories' => array(),
+		) );
+		$product2 = $ewt->addProduct( $membership2 );
+
+		WC()->cart->empty_cart();
+
+		WC()->cart->add_to_cart( $product1->id );
+
+		$passed_validation = apply_filters( 'woocommerce_add_to_cart_validation', true, $product2->id, 1 );
+
+		if ( $passed_validation ) {
+			WC()->cart->add_to_cart( $product2->id );
+		}
+
+		$cart_items = WC()->cart->get_cart();
+
+		$this->assertEquals( 1, count( $cart_items ) );
+
+		$this->assertEquals( $product2->id, array_pop( $cart_items )['data']->id );
+	}
+
+	public function testUpdateWooCommerceCurrency() {
+		$bootstrap = Educator_WooCommerce_Bootstrap::instance();
+
+		require_once $bootstrap->get_edu_wc_path() . '/admin/admin.php';
+		
+		$admin = Educator_WooCommerce_Admin::get_instance();
+
+		add_action( 'update_option_woocommerce_currency', array( $admin, 'update_currency' ), 20, 2 );
+
+		$this->assertEquals( 'GBP', get_option( 'woocommerce_currency' ) );
+		$this->assertEquals( 'USD', ib_edu_get_currency() );
+
+		update_option( 'woocommerce_currency', 'CHF' );
+
+		$this->assertEquals( 'CHF', ib_edu_get_currency() );
 	}
 }

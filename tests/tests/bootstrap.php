@@ -52,6 +52,10 @@ class Educator_WooCommerce_Bootstrap {
 		$GLOBALS['wp_roles']->reinit();
 	}
 
+	public function get_edu_wc_path() {
+		return $this->edu_wc_path;
+	}
+
 	public static function instance() {
 		if ( is_null( self::$instance ) ) {
 			self::$instance = new self();
