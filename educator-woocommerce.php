@@ -142,8 +142,14 @@ class Educator_WooCommerce {
 		return $origins;
 	}
 
-	protected function get_add_to_cart_button( $product ) {
-		return sprintf( '<a href="%s" rel="nofollow" data-product_id="%s" data-product_sku="%s" data-quantity="%s" class="button %s product_type_%s">%s</a>',
+	protected function get_add_to_cart_button( $product, $attr = array() ) {
+		if ( isset( $attr['class'] ) ) {
+			$class = implode( ' ', (array) $attr['class'] );
+		} else {
+			$class = 'button';
+		}
+
+		return sprintf( '<a href="%s" rel="nofollow" data-product_id="%s" data-product_sku="%s" data-quantity="%s" class="' . esc_attr( $class ) . ' %s product_type_%s">%s</a>',
 			esc_url( $product->add_to_cart_url() ),
 			esc_attr( $product->id ),
 			esc_attr( $product->get_sku() ),
@@ -205,7 +211,7 @@ class Educator_WooCommerce {
 		$product = $this->get_object_product( $atts['object_id'] );
 
 		if ( $product ) {
-			$html = $this->get_add_to_cart_button( $product );
+			$html = $this->get_add_to_cart_button( $product, array( 'class' => '' ) );
 		}
 
 		return $html;
@@ -509,8 +515,6 @@ class Educator_WooCommerce {
 			}
 
 			if ( $new_object_id > 0 && $cart_object_id > 0 ) {
-				$this->cache['one_in_cart'] = $new_object_id;
-
 				if ( $item_key ) {
 					WC()->cart->set_quantity( $item_key, 0 );
 				}
