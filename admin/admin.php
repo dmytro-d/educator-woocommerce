@@ -5,8 +5,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 class Educator_WooCommerce_Admin {
+	/**
+	 * @var Educator_WooCommerce_Admin
+	 */
 	protected static $instance;
 
+	/**
+	 * Get instance.
+	 *
+	 * @return Educator_WooCommerce_Admin
+	 */
 	public static function get_instance() {
 		if ( ! self::$instance ) {
 			self::$instance = new self();
@@ -15,6 +23,9 @@ class Educator_WooCommerce_Admin {
 		return self::$instance;
 	}
 
+	/**
+	 * Constructor.
+	 */
 	protected function __construct() {
 		add_action( 'add_meta_boxes', array( $this, 'add_meta_box' ) );
 		add_action( 'save_post', array( $this, 'save_meta' ) );
@@ -22,6 +33,9 @@ class Educator_WooCommerce_Admin {
 		add_action( 'update_option_woocommerce_currency', array( $this, 'update_currency' ), 20, 2 );
 	}
 
+	/**
+	 * Add Product meta box to courses and memberships.
+	 */
 	public function add_meta_box() {
 		foreach ( array( 'ib_educator_course', 'ib_edu_membership' ) as $screen ) {
 			add_meta_box(
@@ -35,6 +49,11 @@ class Educator_WooCommerce_Admin {
 		}
 	}
 
+	/**
+	 * Output product meta box.
+	 *
+	 * @param WP_Post $post
+	 */
 	public function products_meta_box( $post ) {
 		wp_nonce_field( 'edu_wc_products', 'edu_wc_products_nonce' );
 
@@ -65,6 +84,11 @@ class Educator_WooCommerce_Admin {
 		echo $output;
 	}
 
+	/**
+	 * Save post meta.
+	 *
+	 * @param int $post_id
+	 */
 	public function save_meta( $post_id ) {
 		if ( ! isset( $_POST['edu_wc_products_nonce'] ) || ! wp_verify_nonce( $_POST['edu_wc_products_nonce'], 'edu_wc_products' ) ) {
 			return;
@@ -91,6 +115,12 @@ class Educator_WooCommerce_Admin {
 		}
 	}
 
+	/**
+	 * Update course/membership price when a
+	 * related product's price is updated.
+	 *
+	 * @param int $post_id
+	 */
 	public function update_price( $post_id ) {
 		if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
 			return;
@@ -154,6 +184,12 @@ class Educator_WooCommerce_Admin {
 		}
 	}
 
+	/**
+	 * Update Educator's currency when WooCommerce's currency changes.
+	 *
+	 * @param string $old_currency
+	 * @param string $new_currency
+	 */
 	public function update_currency( $old_currency, $new_currency ) {
 		$edu_settings = get_option( 'ib_educator_settings', array() );
 		

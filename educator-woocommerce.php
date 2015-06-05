@@ -207,6 +207,13 @@ class Educator_WooCommerce {
 		return $this->get_price_widget_html( $product );
 	}
 
+	/**
+	 * Replace the Educator's purchase link.
+	 *
+	 * @param string $html
+	 * @param array $atts
+	 * @return string
+	 */
 	public function alter_purchase_link( $html, $atts ) {
 		$product = $this->get_object_product( $atts['object_id'] );
 
@@ -217,6 +224,12 @@ class Educator_WooCommerce {
 		return $html;
 	}
 
+	/**
+	 * Get entries that were initiated by a given order.
+	 *
+	 * @param WC_Order $order
+	 * @return array
+	 */
 	public function get_user_entries( $order ) {
 		$active_entries = array();
 		$order_entries = array();
@@ -241,6 +254,14 @@ class Educator_WooCommerce {
 		);
 	}
 
+	/**
+	 * If order contains virtual products only, change status
+	 * from "processing" to "complete" automatically.
+	 *
+	 * @param string $new_status
+	 * @param int $id Order id
+	 * @return string
+	 */
 	public function order_needs_processing( $new_status, $id ) {
 		if ( 'processing' != $new_status ) {
 			return $new_status;
