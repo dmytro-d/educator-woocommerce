@@ -371,14 +371,8 @@ class Educator_WooCommerce {
 				$entry->save();
 			} elseif ( 'ib_edu_membership' == $object->post_type ) {
 				if ( 'processing' != $old_status && 'completed' != $old_status ) {
-					IB_Educator_Memberships::get_instance()->setup_membership(
-						$order->user_id,
-						$object->ID,
-						array(
-							'origin_type' => 'wc_order',
-							'origin_id'   => $order->id,
-						)
-					);
+					// Setup membership.
+					IB_Educator_Memberships::get_instance()->setup_membership( $order->user_id, $object->ID );
 				}
 			}
 		}
@@ -451,7 +445,7 @@ class Educator_WooCommerce {
 					$u_membership = $ms->get_user_membership( $order->user_id );
 				}
 				
-				if ( $u_membership && 'wc_order' == $u_membership['origin_type'] && $order->id == $u_membership['origin_id'] ) {
+				if ( $u_membership && $object->ID == $u_membership['membership_id'] ) {
 					if ( ! empty( $u_membership['expiration'] ) && is_numeric( $u_membership['expiration'] ) ) {
 						// Membership that has a duration.
 						$membership_meta = $ms->get_membership_meta($u_membership['membership_id']);

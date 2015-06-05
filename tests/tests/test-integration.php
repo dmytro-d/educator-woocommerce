@@ -57,8 +57,6 @@ class Integration extends WP_UnitTestCase {
 			'status'        => 'active',
 			'expiration'    => $ms->calculate_expiration_date( 1, 'months' ),
 			'paused'        => 0,
-			'origin_type'   => 'wc_order',
-			'origin_id'     => $order->id,
 		), $u_membership );
 	}
 
@@ -146,8 +144,6 @@ class Integration extends WP_UnitTestCase {
 			'status'        => 'active',
 			'expiration'    => $ms->calculate_expiration_date( 1, 'months' ),
 			'paused'        => 0,
-			'origin_type'   => 'wc_order',
-			'origin_id'     => $order->id,
 		), $u_membership );
 
 		$expiration = $u_membership['expiration'];
