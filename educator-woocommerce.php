@@ -474,6 +474,9 @@ class Educator_WooCommerce {
 					}
 
 					$ms->update_user_membership( $u_membership );
+
+					// Pause course entries which originated from the membership.
+					$ms->update_membership_entries( $u_membership['user_id'], 'paused' );
 				}
 			}
 		}
