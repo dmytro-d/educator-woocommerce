@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Educator WooCommerce Integration.
  * Description: Integrate WooCommerce with Educator.
- * Version: 0.1
+ * Version: 1.0
  * Author: dmytro.d
  * Author URI: http://educatorplugin.com
  */
@@ -33,12 +33,26 @@ function edu_wc_get_objects_by_product( $product_id ) {
 }
 
 class Educator_WooCommerce {
-	protected $version = '0.1';
+	/**
+	 * @var string
+	 */
+	protected $version = '1.0';
 
+	/**
+	 * @var array
+	 */
 	protected $cache = array();
 
+	/**
+	 * @var Educator_WooCommerce
+	 */
 	protected static $instance;
 
+	/**
+	 * Get instance.
+	 *
+	 * @return Educator_WooCommerce
+	 */
 	public static function get_instance() {
 		if ( ! self::$instance ) {
 			self::$instance = new self();
@@ -86,6 +100,12 @@ class Educator_WooCommerce {
 		}
 	}
 
+	/**
+	 * Get product that is assigned to a given object(course, membership).
+	 *
+	 * @param int $object_id
+	 * @return WC_Product|null
+	 */
 	public function get_object_product( $object_id ) {
 		$product = null;
 		$product_id = get_post_meta( $object_id, '_edu_wc_product', true );
@@ -142,6 +162,13 @@ class Educator_WooCommerce {
 		return $origins;
 	}
 
+	/**
+	 * Get "Add to cart" button for a given product.
+	 *
+	 * @param WC_Product $product
+	 * @param array $attr
+	 * @return string
+	 */
 	protected function get_add_to_cart_button( $product, $attr = array() ) {
 		if ( isset( $attr['class'] ) ) {
 			$class = implode( ' ', (array) $attr['class'] );
@@ -160,6 +187,12 @@ class Educator_WooCommerce {
 		);
 	}
 
+	/**
+	 * Get price widget for a given product.
+	 *
+	 * @param WC_Product
+	 * @return string
+	 */
 	protected function get_price_widget_html( $product ) {
 		$output = '<div class="ib-edu-price-widget">';
 		$output .= '<span class="price">' . $product->get_price_html() . '</span>';
@@ -319,6 +352,8 @@ class Educator_WooCommerce {
 	 * Create entries and/or memberships for purchased products.
 	 *
 	 * @param int $order_id
+	 * @param string $old_status
+	 * @param string $new_status
 	 */
 	public function complete_order( $order_id, $old_status = null, $new_status = null ) {
 		$order = new WC_Order( $order_id );
