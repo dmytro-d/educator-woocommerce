@@ -9,7 +9,7 @@ class Educator_WooCommerce_Bootstrap {
 	private function __construct() {
 		$this->edu_path = dirname( __FILE__ ) . '/../../../ibeducator';
 		$this->wc_path = dirname( __FILE__ ) . '/../../../woocommerce';
-		$this->edu_wc_path = dirname( __FILE__ ) . '/../../../educator-woocommerce';
+		$this->edu_wc_path = dirname( __FILE__ ) . '/../../../educator-woocommerce-integration';
 
 		$this->setup();
 	}
@@ -34,7 +34,7 @@ class Educator_WooCommerce_Bootstrap {
 	}
 
 	public function load_plugins() {
-		require $this->edu_wc_path . '/educator-woocommerce.php';
+		require $this->edu_wc_path . '/educator-woocommerce-integration.php';
 		require $this->wc_path . '/woocommerce.php';
 		require $this->edu_path . '/ibeducator.php';
 	}
