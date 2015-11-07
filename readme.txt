@@ -14,7 +14,7 @@ Connects the Educator plugin with the WooCommerce.
 
 **Requires Educator 1.7 or greater.**
 
-Sell courses created using the Educator plugin using WooCommerce.
+This is an add-on to the Educator plugin. It adds the ability to sell courses using the WooCommerce.
 
 Educator plugin URI: https://wordpress.org/plugins/ibeducator/
 
