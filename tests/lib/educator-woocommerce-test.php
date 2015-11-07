@@ -35,7 +35,7 @@ class Educator_WooCommerce_Test {
 			'post_status' => 'publish',
 		) );
 
-		$ms = IB_Educator_Memberships::get_instance();
+		$ms = Edr_Memberships::get_instance();
 		
 		$meta = $ms->get_membership_meta();
 

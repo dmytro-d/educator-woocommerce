@@ -3,7 +3,7 @@
  * Plugin Name: Educator WooCommerce Integration
  * Plugin URI: http://educatorplugin.com/add-ons/educator-woocommerce-integration/
  * Description: Integrate WooCommerce with Educator.
- * Version: 1.0
+ * Version: 1.1
  * Author: educatorteam
  * Author URI: http://educatorplugin.com
  * License: GPLv2 or later
@@ -435,7 +435,7 @@ class Educator_WooCommerce {
 					$entry->entry_status = 'inprogress';
 				} else {
 					// Create a new entry for this item.
-					$entry = IB_Educator_Entry::get_instance();
+					$entry = edr_get_entry();
 					$entry->course_id = $object->ID;
 					$entry->user_id = $order->user_id;
 					$entry->entry_origin = 'wc_order';
@@ -448,7 +448,7 @@ class Educator_WooCommerce {
 			} elseif ( 'ib_edu_membership' == $object->post_type ) {
 				if ( 'processing' != $old_status && 'completed' != $old_status ) {
 					// Setup membership.
-					IB_Educator_Memberships::get_instance()->setup_membership( $order->user_id, $object->ID );
+					Edr_Memberships::get_instance()->setup_membership( $order->user_id, $object->ID );
 				}
 			}
 		}
@@ -517,7 +517,7 @@ class Educator_WooCommerce {
 				}
 			} elseif ( 'ib_edu_membership' == $object->post_type ) {
 				if ( is_null( $ms ) ) {
-					$ms = IB_Educator_Memberships::get_instance();
+					$ms = Edr_Memberships::get_instance();
 					$u_membership = $ms->get_user_membership( $order->user_id );
 				}
 				
