@@ -1,13 +1,19 @@
 <?php
 /**
  * Plugin Name: Educator WooCommerce Integration
+ * Plugin URI: http://educatorplugin.com/add-ons/educator-woocommerce-integration/
  * Description: Integrate WooCommerce with Educator.
  * Version: 1.0
- * Author: dmytro.d
+ * Author: educatorteam
  * Author URI: http://educatorplugin.com
+ * License: GPLv2 or later
+ * License URI: http://www.gnu.org/licenses/gpl-2.0.html
+ * Text Domain: educator-wc
  */
 
 /*
+Copyright (C) 2015 http://educatorplugin.com/ - contact@educatorplugin.com
+
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
 as published by the Free Software Foundation; either version 2
@@ -23,9 +29,7 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
-if ( ! defined( 'ABSPATH' ) ) {
-	exit;
-}
+if ( ! defined( 'ABSPATH' ) ) exit;
 
 /**
  * Get objects given product id.
