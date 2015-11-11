@@ -46,7 +46,7 @@ class Integration extends WP_UnitTestCase {
 
 		$order->update_status( 'completed' );
 
-		$ms = IB_Educator_Memberships::get_instance();
+		$ms = Edr_Memberships::get_instance();
 
 		$u_membership = $ms->get_user_membership( 1 );
 
@@ -102,7 +102,7 @@ class Integration extends WP_UnitTestCase {
 	public function testCancelOrder() {
 		$ewt = Educator_WooCommerce_Test::instance();
 		$api = IB_Educator::get_instance();
-		$ms = IB_Educator_Memberships::get_instance();
+		$ms = Edr_Memberships::get_instance();
 
 		$course = $ewt->addCourse();
 		$course_product = $ewt->addProduct( $course );

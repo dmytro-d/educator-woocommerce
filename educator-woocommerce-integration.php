@@ -1,13 +1,19 @@
 <?php
 /**
  * Plugin Name: Educator WooCommerce Integration
+ * Plugin URI: http://educatorplugin.com/add-ons/educator-woocommerce-integration/
  * Description: Integrate WooCommerce with Educator.
- * Version: 1.0
- * Author: dmytro.d
+ * Version: 1.1
+ * Author: educatorteam
  * Author URI: http://educatorplugin.com
+ * License: GPLv2 or later
+ * License URI: http://www.gnu.org/licenses/gpl-2.0.html
+ * Text Domain: educator-wc
  */
 
 /*
+Copyright (C) 2015 http://educatorplugin.com/ - contact@educatorplugin.com
+
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
 as published by the Free Software Foundation; either version 2
@@ -23,9 +29,7 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
-if ( ! defined( 'ABSPATH' ) ) {
-	exit;
-}
+if ( ! defined( 'ABSPATH' ) ) exit;
 
 /**
  * Get objects given product id.
@@ -52,7 +56,7 @@ class Educator_WooCommerce {
 	/**
 	 * @var string
 	 */
-	protected $version = '1.0';
+	protected $version = '1.1';
 
 	/**
 	 * @var array
@@ -431,7 +435,7 @@ class Educator_WooCommerce {
 					$entry->entry_status = 'inprogress';
 				} else {
 					// Create a new entry for this item.
-					$entry = IB_Educator_Entry::get_instance();
+					$entry = edr_get_entry();
 					$entry->course_id = $object->ID;
 					$entry->user_id = $order->user_id;
 					$entry->entry_origin = 'wc_order';
@@ -444,7 +448,7 @@ class Educator_WooCommerce {
 			} elseif ( 'ib_edu_membership' == $object->post_type ) {
 				if ( 'processing' != $old_status && 'completed' != $old_status ) {
 					// Setup membership.
-					IB_Educator_Memberships::get_instance()->setup_membership( $order->user_id, $object->ID );
+					Edr_Memberships::get_instance()->setup_membership( $order->user_id, $object->ID );
 				}
 			}
 		}
@@ -513,7 +517,7 @@ class Educator_WooCommerce {
 				}
 			} elseif ( 'ib_edu_membership' == $object->post_type ) {
 				if ( is_null( $ms ) ) {
-					$ms = IB_Educator_Memberships::get_instance();
+					$ms = Edr_Memberships::get_instance();
 					$u_membership = $ms->get_user_membership( $order->user_id );
 				}
 				

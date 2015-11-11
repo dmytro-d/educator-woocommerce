@@ -41,9 +41,8 @@ class Educator_WooCommerce_Bootstrap {
 
 	public function install_plugins() {
 		// Educator.
-		require_once IBEDUCATOR_PLUGIN_DIR . 'includes/ib-educator-install.php';
-		$ibe_install = new IB_Educator_Install();
-		$ibe_install->activate();
+		$edr_install = new Edr_Install();
+		$edr_install->activate();
 
 		// WooCommmerce.
 		define( 'WP_UNINSTALL_PLUGIN', true );

@@ -1,8 +1,6 @@
 <?php
 
-if ( ! defined( 'ABSPATH' ) ) {
-	exit;
-}
+if ( ! defined( 'ABSPATH' ) ) exit;
 
 class Educator_WooCommerce_Admin {
 	/**
@@ -142,7 +140,7 @@ class Educator_WooCommerce_Admin {
 			$product = wc_get_product( $post_id );
 			$product_price = $product->get_price();
 			$objects = edu_wc_get_objects_by_product( $post_id );
-			$ms = IB_Educator_Memberships::get_instance();
+			$ms = Edr_Memberships::get_instance();
 
 			foreach ( $objects as $object ) {
 				if ( 'ib_educator_course' == $object->post_type ) {
@@ -172,7 +170,7 @@ class Educator_WooCommerce_Admin {
 							update_post_meta( $post_id, '_ibedu_price', $product_price );
 						}
 					} else {
-						$meta = IB_Educator_Memberships::get_instance()->get_membership_meta( $post_id );
+						$meta = Edr_Memberships::get_instance()->get_membership_meta( $post_id );
 
 						if ( $product_price != $meta['price'] ) {
 							$meta['price'] = $product->get_price();
