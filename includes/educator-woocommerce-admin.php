@@ -1,12 +1,15 @@
 <?php
 
-if ( ! defined( 'ABSPATH' ) ) exit;
-
 class Educator_WooCommerce_Admin {
 	/**
 	 * @var Educator_WooCommerce_Admin
 	 */
 	protected static $instance;
+
+	/**
+	 * @var Educator_WooCommerce
+	 */
+	protected $ew;
 
 	/**
 	 * Get instance.
@@ -25,6 +28,8 @@ class Educator_WooCommerce_Admin {
 	 * Constructor.
 	 */
 	protected function __construct() {
+		$this->ew = Educator_WooCommerce::get_instance();
+
 		add_action( 'add_meta_boxes', array( $this, 'add_meta_box' ) );
 		add_action( 'save_post', array( $this, 'save_meta' ) );
 		add_action( 'save_post', array( $this, 'update_price' ), 20 );
@@ -35,10 +40,12 @@ class Educator_WooCommerce_Admin {
 	 * Add Product meta box to courses and memberships.
 	 */
 	public function add_meta_box() {
-		foreach ( array( 'ib_educator_course', 'ib_edu_membership' ) as $screen ) {
+		$sold_post_types = $this->ew->get_sold_post_types();
+
+		foreach ( $sold_post_types as $screen ) {
 			add_meta_box(
 				'edu_wc_products',
-				__( 'Product', 'ibeducator' ),
+				__( 'Product', 'educator-wc' ),
 				array( $this, 'products_meta_box' ),
 				$screen,
 				'side',
@@ -97,8 +104,9 @@ class Educator_WooCommerce_Admin {
 		}
 
 		$post = get_post( $post_id );
+		$sold_post_types = $this->ew->get_sold_post_types();
 
-		if ( empty( $post ) || ! in_array( $post->post_type, array( 'ib_educator_course', 'ib_edu_membership' ) ) ) {
+		if ( empty( $post ) || ! in_array( $post->post_type, $sold_post_types ) ) {
 			return;
 		}
 
@@ -139,24 +147,12 @@ class Educator_WooCommerce_Admin {
 		if ( 'product' == $post->post_type ) {
 			$product = wc_get_product( $post_id );
 			$product_price = $product->get_price();
-			$objects = edu_wc_get_objects_by_product( $post_id );
-			$ms = Edr_Memberships::get_instance();
+			$objects = $this->ew->get_objects_by_product( $post_id );
 
 			foreach ( $objects as $object ) {
-				if ( 'ib_educator_course' == $object->post_type ) {
-					if ( $product_price != get_post_meta( $object->ID, '_ibedu_price', true ) ) {
-						update_post_meta( $object->ID, '_ibedu_price', $product_price );
-					}
-				} elseif ( 'ib_edu_membership' == $object->post_type ) {
-					$meta = $ms->get_membership_meta( $object->ID );
-
-					if ( $product_price != $meta['price'] ) {
-						$meta['price'] = $product_price;
-						update_post_meta( $object->ID, '_ib_educator_membership', $meta );
-					}
-				}
+				$this->set_price( $object->ID, $product_price, $object->post_type );
 			}
-		} elseif ( in_array( $post->post_type, array( 'ib_educator_course', 'ib_edu_membership' ) ) ) {
+		} elseif ( in_array( $post->post_type, $this->ew->get_sold_post_types() ) ) {
 			$product_id = get_post_meta( $post_id, '_edu_wc_product', true );
 
 			if ( $product_id ) {
@@ -164,21 +160,22 @@ class Educator_WooCommerce_Admin {
 
 				if ( $product ) {
 					$product_price = $product->get_price();
-
-					if ( 'ib_educator_course' == $post->post_type ) {
-						if ( $product_price != get_post_meta( $post_id, '_ibedu_price', true ) ) {
-							update_post_meta( $post_id, '_ibedu_price', $product_price );
-						}
-					} else {
-						$meta = Edr_Memberships::get_instance()->get_membership_meta( $post_id );
-
-						if ( $product_price != $meta['price'] ) {
-							$meta['price'] = $product->get_price();
-							update_post_meta( $post_id, '_ib_educator_membership', $meta );
-						}
-					}
+					$this->set_price( $post_id, $product_price, $post->post_type );
 				}
 			}
+		}
+	}
+
+	/**
+	 * Set the price of an object (course or membership).
+	 *
+	 * @param int $object_id
+	 * @param float $price
+	 * @param string $object_type
+	 */
+	public function set_price( $object_id, $price, $object_type ) {
+		if ( $price != get_post_meta( $object_id, '_edr_price', true ) ) {
+			update_post_meta( $object_id, '_edr_price', $price );
 		}
 	}
 
@@ -189,10 +186,8 @@ class Educator_WooCommerce_Admin {
 	 * @param string $new_currency
 	 */
 	public function update_currency( $old_currency, $new_currency ) {
-		$edu_settings = get_option( 'ib_educator_settings', array() );
-		
-		$edu_settings['currency'] = $new_currency;
-
-		update_option( 'ib_educator_settings', $edu_settings );
+		$settings = get_option( 'edr_settings', array() );
+		$settings['currency'] = $new_currency;
+		update_option( 'edr_settings', $settings );
 	}
 }
