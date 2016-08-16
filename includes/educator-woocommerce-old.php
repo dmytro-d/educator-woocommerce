@@ -17,6 +17,12 @@ class Educator_WooCommerce_Old extends Educator_WooCommerce {
 		return IB_Educator::get_instance()->get_entries( $args );
 	}
 
+	protected function get_membership_meta( $post_id, $key ) {
+		$meta = Edr_Memberships::get_instance()->get_membership_meta( $post_id );
+
+		return $meta[ $key ];
+	}
+
 	protected function get_price_widget_html( $product ) {
 		$output = '<div class="ib-edu-price-widget">';
 		$output .= '<span class="price">' . $product->get_price_html() . '</span>';

@@ -92,6 +92,23 @@ class Educator_WooCommerce {
 		return Edr_Entries::get_instance()->get_entries( $args );
 	}
 
+	protected function get_membership_meta( $post_id, $key ) {
+		$meta_value = null;
+		$obj_memberships = Edr_Memberships::get_instance();
+
+		switch ( $key ) {
+			case 'duration':
+				$meta_value = $obj_memberships->get_duration( $post_id );
+				break;
+
+			case 'period':
+				$meta_value = $obj_memberships->get_period( $post_id );
+				break;
+		}
+
+		return $meta_value;
+	}
+
 	public function get_objects_by_product( $product_id ) {
 		return get_posts( array(
 			'post_type'      => $this->get_sold_post_types(),
@@ -204,7 +221,7 @@ class Educator_WooCommerce {
 	 */
 	protected function get_price_widget_html( $product ) {
 		$output = '<div class="edr-buy-widget">';
-		$output .= '<span class="edr-buy-widget__price">' . $product->get_price_html() . '</span>';
+		$output .= $product->get_price_html();
 		$output .= $this->get_add_to_cart_button( $product );
 		$output .= '</div>';
 
@@ -463,7 +480,7 @@ class Educator_WooCommerce {
 
 		$entries = null;
 		$u_membership = null;
-		$ms = null;
+		$obj_memberships = null;
 
 		foreach ( $objects as $object ) {
 			if ( $this->pt_course == $object->post_type ) {
@@ -490,22 +507,22 @@ class Educator_WooCommerce {
 					$entries[ $object->ID ]->save();
 				}
 			} elseif ( $this->pt_membership == $object->post_type ) {
-				if ( is_null( $ms ) ) {
-					$ms = Edr_Memberships::get_instance();
-					$u_membership = $ms->get_user_membership( $order->user_id );
+				if ( is_null( $obj_memberships ) ) {
+					$obj_memberships = Edr_Memberships::get_instance();
+					$u_membership = $obj_memberships->get_user_membership_by( 'user_id', $order->user_id );
 				}
 				
 				if ( $u_membership && $object->ID == $u_membership['membership_id'] ) {
 					if ( ! empty( $u_membership['expiration'] ) && is_numeric( $u_membership['expiration'] ) ) {
 						// Membership that has a duration.
-						$membership_meta = $ms->get_membership_meta($u_membership['membership_id']);
+						$duration = $this->get_membership_meta( $u_membership['membership_id'], 'duration' );
+						$period = $this->get_membership_meta( $u_membership['membership_id'], 'period' );
 
 						// Calculate new expiration date.
-						$new_expiration_ts = $ms->modify_expiration_date( $membership_meta['duration'],
-							$membership_meta['period'], '-', $u_membership['expiration'] );
+						$new_expiration_ts = $obj_memberships->modify_expiration_date( $duration, $period, '-', $u_membership['expiration'] );
 						
 						// Update expiration date.
-						$u_membership['expiration'] = date( 'Y-m-d H:i:s', $new_expiration_ts );
+						$u_membership['expiration'] = defined( 'EDR_VERSION' ) ? $new_expiration_ts : date( 'Y-m-d H:i:s', $new_expiration_ts );
 
 						if ( date( 'Y-m-d', $new_expiration_ts ) == date( 'Y-m-d' ) ) {
 							// The membership was ordered and cancelled today,
@@ -517,10 +534,10 @@ class Educator_WooCommerce {
 						$u_membership['status'] = 'expired';
 					}
 
-					$ms->update_user_membership( $u_membership );
+					$obj_memberships->update_user_membership( $u_membership );
 
 					// Pause course entries which originated from the membership.
-					$ms->update_membership_entries( $u_membership['user_id'], 'paused' );
+					$obj_memberships->update_membership_entries( $u_membership['user_id'], 'paused' );
 				}
 			}
 		}
